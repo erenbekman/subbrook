@@ -17,7 +17,9 @@
     "@tauri-apps/plugin-http": "^2.8.2",
     "@tauri-apps/plugin-notification": "^2.6.0",
     "@tauri-apps/plugin-opener": "^2.7.1",
+    "@tauri-apps/plugin-process": "^2.4.0",
     "@tauri-apps/plugin-sql": "^2.5.0",
+    "@tauri-apps/plugin-updater": "^2.13.3",
     "pdfjs-dist": "^6.4.299",
     "vue": "^3.5.43"
   },
