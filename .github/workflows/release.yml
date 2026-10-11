@@ -64,3 +64,12 @@ jobs:
           prerelease: false
           uploadUpdaterJson: true
           args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json
+
+      - name: Upload the macOS download under a stable name
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg Subbrook-macOS.dmg
+          gh release upload "$GITHUB_REF_NAME" Subbrook-macOS.dmg --clobber
