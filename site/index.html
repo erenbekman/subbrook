@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subbrook — every subscription, in one calm stream</title>
+  <meta name="description" content="A free, open-source subscription tracker for your Mac. No account, no paywall, no subscription cap — your data stays in one file on your computer." />
+  <meta property="og:title" content="Subbrook — every subscription, in one calm stream" />
+  <meta property="og:description" content="Free, open-source and local-first. No account, no paywall, no subscription cap." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://subbrook.com/" />
+  <meta name="theme-color" content="#F3F7F4" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#091413" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" href="../app-icon.svg" type="image/svg+xml" />
+  <script>
+    const media = matchMedia('(prefers-color-scheme: dark)')
+    const applyTheme = () => { document.documentElement.dataset.theme = media.matches ? 'dark' : 'light' }
+    applyTheme()
+    media.addEventListener('change', applyTheme)
+  </script>
+  <link rel="stylesheet" href="./site.css" />
+</head>
+<body>
+  <header class="top wrap">
+    <a class="wordmark" href="./" aria-label="Subbrook home"><span class="sub">sub</span>brook</a>
+    <nav aria-label="Main" class="nav">
+      <a href="#features">Features</a>
+      <a href="#privacy">Privacy</a>
+      <a href="https://github.com/erenbekman/subbrook">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <span class="caption">Free · Open source · Local-first</span>
+        <h1 id="hero-title" class="hero-title">Every subscription, in one calm stream.</h1>
+        <p class="lead">Subbrook tracks what you pay for and when, on your Mac. No account, no paywall, no cap on how many subscriptions you add — your data stays in one file on your computer.</p>
+        <div class="cta">
+          <a class="btn btn-primary" href="https://github.com/erenbekman/subbrook">Get it on GitHub</a>
+          <a class="btn" href="https://github.com/erenbekman/subbrook/releases">Watch for the first release</a>
+        </div>
+        <p class="meta">macOS first. Windows and Linux builds are on the way. MIT licensed.</p>
+      </div>
+
+      <div class="window card" role="img" aria-label="Illustration of the Subbrook overview: this month's total, a bar of what's paid and still to come, and charges along the month.">
+        <div class="dock" aria-hidden="true">
+          <span class="dock-item on"><span class="dot"></span>Overview</span>
+          <span class="dock-item">Calendar</span>
+          <span class="dock-item">Subscriptions</span>
+          <span class="dock-add">+</span>
+        </div>
+        <div class="window-body" aria-hidden="true">
+          <span class="caption">October 2026</span>
+          <div class="figure">₺10.551<span class="quiet">,62</span></div>
+          <div class="segments">
+            <span class="seg paid" style="flex-grow: 70"></span>
+            <span class="seg paid" style="flex-grow: 13"></span>
+            <span class="seg due" style="flex-grow: 7"></span>
+            <span class="seg trial" style="flex-grow: 2"></span>
+            <span class="seg due" style="flex-grow: 4"></span>
+            <span class="seg due" style="flex-grow: 3"></span>
+          </div>
+          <div class="split meta"><span><strong>₺8.701,98</strong> paid</span><span><strong>₺1.849,64</strong> still to come</span></div>
+          <div class="river">
+            <span class="line"></span>
+            <span class="today"></span>
+            <span class="disc paid up" style="left: 12%; --size: 30px">O</span>
+            <span class="disc paid down" style="left: 22%; --size: 56px">C</span>
+            <span class="disc paid up" style="left: 31%; --size: 24px">Y</span>
+            <span class="disc cat-4 up" style="left: 45%; --size: 28px">N</span>
+            <span class="disc trial down" style="left: 50%; --size: 26px">E</span>
+            <span class="disc cat-5 up" style="left: 57%; --size: 20px">S</span>
+            <span class="disc cat-2 down" style="left: 64%; --size: 24px">i</span>
+            <span class="disc cat-3 up" style="left: 74%; --size: 30px">G</span>
+            <span class="disc cat-3 down" style="left: 86%; --size: 34px">F</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="features wrap" aria-labelledby="features-title">
+      <h2 id="features-title" class="section-title">Know what you pay, before you pay it.</h2>
+      <div class="grid">
+        <article>
+          <h3 class="heading">The month at a glance</h3>
+          <p class="meta">One total for the month, what's already paid and what's still to come — with your share of shared plans, not the full price.</p>
+        </article>
+        <article>
+          <h3 class="heading">A calendar of charges</h3>
+          <p class="meta">Every renewal on the day it lands, with week totals. Mark a charge as paid, skipped or refunded.</p>
+        </article>
+        <article>
+          <h3 class="heading">Reminders that arrive on time</h3>
+          <p class="meta">A heads-up before each renewal and before a free trial turns into a charge. Subbrook waits quietly in the menu bar.</p>
+        </article>
+        <article>
+          <h3 class="heading">Import a bank statement</h3>
+          <p class="meta">Drop in a CSV, Excel or PDF export and Subbrook finds the charges that repeat. The file is read on your computer and never uploaded.</p>
+        </article>
+        <article>
+          <h3 class="heading">Every currency, one total</h3>
+          <p class="meta">Pay in lira, dollars, euros or pounds — totals convert to your currency with central bank rates (TCMB, ECB).</p>
+        </article>
+        <article>
+          <h3 class="heading">Price rises, noticed</h3>
+          <p class="meta">Every price change is kept, so a plan that quietly got more expensive doesn't stay quiet.</p>
+        </article>
+        <article>
+          <h3 class="heading">Take it anywhere</h3>
+          <p class="meta">Export to CSV, add renewals to your calendar with an .ics file, or share a poster of your month.</p>
+        </article>
+        <article>
+          <h3 class="heading">Keyboard first</h3>
+          <p class="meta">⌘K finds any subscription or command. ⌘N adds one. ⌘1–4 moves between views.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="privacy" class="privacy wrap" aria-labelledby="privacy-title">
+      <div class="privacy-copy">
+        <span class="caption">Privacy</span>
+        <h2 id="privacy-title" class="section-title">Your subscriptions are nobody else's business.</h2>
+        <p class="lead">There is no Subbrook account and no Subbrook server. Everything lives in a single SQLite file in your app-data folder — back it up, sync it, or delete it, it's yours.</p>
+      </div>
+      <ul class="facts">
+        <li><strong>No account.</strong> <span class="meta">Open the app and start adding.</span></li>
+        <li><strong>No telemetry.</strong> <span class="meta">Nothing about you or your use is collected.</span></li>
+        <li><strong>One network request.</strong> <span class="meta">Daily exchange rates from TCMB and ECB, and only when you track more than one currency.</span></li>
+        <li><strong>Open source.</strong> <span class="meta">MIT licensed — read every line on GitHub.</span></li>
+      </ul>
+    </section>
+
+    <section class="free wrap" aria-labelledby="free-title">
+      <h2 id="free-title" class="section-title">Free. Not free for three.</h2>
+      <p class="lead">No paywall, no premium tier, no limit on how many subscriptions you track. Subbrook is built in the open and stays that way.</p>
+      <a class="text-link" href="https://github.com/erenbekman/subbrook">Star it on GitHub →</a>
+    </section>
+  </main>
+
+  <footer class="foot wrap">
+    <span class="wordmark small"><span class="sub">sub</span>brook</span>
+    <span class="meta">© 2026 · <a href="https://github.com/erenbekman/subbrook/blob/main/LICENSE">MIT License</a> · <a href="https://github.com/erenbekman/subbrook">Source</a></span>
+  </footer>
+</body>
+</html>
