@@ -1,0 +1,89 @@
+/* Subbrook — Paper & Ink tokens. Source of truth: the "Subbrook" design system. */
+
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('../assets/fonts/manrope-latin-wght-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('../assets/fonts/manrope-latin-ext-wght-normal.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+:root {
+  --paper: #F3F7F4;
+  --surface: #FFFFFF;
+  --sunken: #E8F0EB;
+  --line: #DCE7E0;
+  --line-strong: #BFD3C8;
+  --ink: #091413;
+  --ink-2: #3D544B;
+  --ink-3: #566C63;
+  --primary: #091413;
+  --on-primary: #F3F7F4;
+  --brand: #285A48;
+  --mint: #B0E4CC;
+  --mint-soft: #DFF4EB;
+  --leaf: #408A71;
+  --trial: #6B4FA0;
+  --trial-soft: #F0EDF6;
+  --rise: #A14A35;
+  --rise-soft: #F6EDEB;
+  --cat-1: #285A48; --cat-1-soft: #E5EBE9;
+  --cat-2: #2F6F8A; --cat-2-soft: #E6EEF1;
+  --cat-3: #4C55A6; --cat-3-soft: #EAEBF4;
+  --cat-4: #9A3E77; --cat-4-soft: #F3E8EF;
+  --cat-5: #6E6010; --cat-5-soft: #EEECE2;
+  --cat-6: #A14A35; --cat-6-soft: #F4E9E7;
+  --dock: #091413;
+  --on-dock: #DFF4EB;
+  --on-dock-2: #8FA39B;
+
+  --shadow-card: 0 1px 2px rgba(9, 20, 19, 0.05), 0 16px 40px -24px rgba(9, 20, 19, 0.25);
+  --shadow-dock: 0 18px 44px -16px rgba(9, 20, 19, 0.55);
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-6: 24px; --space-8: 32px; --space-12: 48px; --space-16: 64px;
+  --radius-sm: 8px; --radius-md: 14px; --radius-lg: 24px; --radius-pill: 999px;
+
+  --font-sans: Manrope, system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+
+/* Ink theme. lib/theme.ts resolves the user's setting (light / dark / system) into data-theme. */
+:root[data-theme='dark'] {
+  --paper: #091413;
+  --surface: #0F211D;
+  --sunken: #0B1A17;
+  --line: #1B3A31;
+  --line-strong: #244F42;
+  --ink: #DFF4EB;
+  --ink-2: #AABCB5;
+  --ink-3: #8FA39B;
+  --primary: #B0E4CC;
+  --on-primary: #091413;
+  --brand: #B0E4CC;
+  --mint: #285A48;
+  --mint-soft: #223832;
+  --trial: #C9B3E6;
+  --trial-soft: #293539;
+  --rise: #DDA59C;
+  --rise-soft: #2C332F;
+  --cat-1: #B0E4CC; --cat-1-soft: #294039;
+  --cat-2: #9CBBDD; --cat-2-soft: #263A3C;
+  --cat-3: #9CA1DD; --cat-3-soft: #26353C;
+  --cat-4: #D99CDD; --cat-4-soft: #2F353C;
+  --cat-5: #DDDC9C; --cat-5-soft: #303F31;
+  --cat-6: #DD9C9F; --cat-6-soft: #303532;
+  --dock: #16302A;
+  --shadow-card: 0 1px 0 rgba(223, 244, 235, 0.04), 0 16px 40px -24px rgba(0, 0, 0, 0.6);
+  --shadow-dock: 0 18px 44px -16px rgba(0, 0, 0, 0.8);
+  color-scheme: dark;
+}

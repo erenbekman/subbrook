@@ -1,0 +1,69 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--brand); text-decoration: none; font-weight: 600; }
+a:hover { color: var(--ink); }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
+
+/* ---- type ---- */
+.figure-xl { font-size: 72px; line-height: 1; font-weight: 300; letter-spacing: -0.045em; }
+.figure-l { font-size: 34px; line-height: 1.15; font-weight: 300; letter-spacing: -0.03em; }
+.title { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+.heading { margin: 0; font-size: 16px; font-weight: 700; }
+.caption { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.meta { font-size: 13px; color: var(--ink-2); }
+.quiet { color: var(--ink-3); }
+
+/* ---- buttons ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  height: 36px; padding: 0 16px; border-radius: var(--radius-pill);
+  border: 1px solid var(--line-strong); background: transparent; color: var(--ink);
+  font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { background: var(--sunken); }
+.btn-primary { border: 0; background: var(--primary); color: var(--on-primary); height: 40px; padding: 0 20px; font-size: 14px; }
+.btn-primary:hover { background: var(--primary); opacity: 0.9; }
+.btn-danger { border: 0; color: var(--rise); font-weight: 700; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ---- segmented control ---- */
+.segmented { display: inline-flex; background: var(--sunken); border-radius: var(--radius-pill); padding: 3px; }
+.segmented button {
+  height: 28px; padding: 0 12px; border: 0; border-radius: var(--radius-pill);
+  background: transparent; color: var(--ink-2); font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.segmented button[aria-selected='true'], .segmented button[aria-checked='true'] { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: 0 1px 2px rgba(9, 20, 19, 0.08); }
+
+/* ---- fields ---- */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.input {
+  height: 40px; padding: 0 12px; border-radius: var(--radius-md);
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+}
+textarea.input { height: auto; padding: 12px; resize: vertical; }
+
+/* ---- surfaces ---- */
+.card { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: var(--space-6); }
+.rule { border: 0; border-top: 1px solid var(--line); margin: 0; }
+
+/* ---- badges ---- */
+.badge { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: var(--radius-pill); font-size: 11px; font-weight: 700; white-space: nowrap; }
+.badge-trial { background: var(--trial-soft); color: var(--trial); }
+.badge-rise { background: var(--rise-soft); color: var(--rise); }
+.badge-paid { background: var(--mint-soft); color: var(--brand); }
+.badge-muted { background: var(--sunken); color: var(--ink-2); }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
