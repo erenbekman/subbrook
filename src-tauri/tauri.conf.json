@@ -55,7 +55,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM0NEIwMkY3QTRFRUIyRDkKUldUWnN1Nms5d0pMeElKem5kSHM5cTBCNFplNnIrMERjZk5XNS9hamtsRlU4d2p0KzJhdTBqS24K",
       "endpoints": [
         "https://github.com/erenbekman/subbrook/releases/latest/download/latest.json"
       ],
