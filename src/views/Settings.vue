@@ -7,6 +7,8 @@ import { fromISO } from '../lib/dates'
 import { latestRates, refreshRates } from '../lib/fx'
 import { notificationsAllowed } from '../lib/notify'
 import { exportFile } from '../lib/export'
+import { getVersion } from '@tauri-apps/api/app'
+import { checkForUpdate, installAndRestart, updater } from '../lib/update'
 import { getTheme, setTheme, type ThemeChoice } from '../lib/theme'
 
 const emit = defineEmits<{ import: [] }>()
@@ -80,6 +82,22 @@ async function saveExport(kind: 'csv' | 'ics'): Promise<void> {
   }
 }
 
+const version = ref('')
+const updateStatus = ref('')
+
+async function checkNow(): Promise<void> {
+  updateStatus.value = ''
+  try {
+    updateStatus.value = await checkForUpdate(true)
+  } catch (e) {
+    updateStatus.value = `Couldn't check for updates: ${String(e)}`
+  }
+}
+
+function toggleAutoUpdate(e: Event): void {
+  commit(() => saveSetting('auto_update', (e.target as HTMLInputElement).checked))
+}
+
 const notifyStatus = ref('')
 const launchAtLogin = ref(false)
 
@@ -99,6 +117,7 @@ async function toggleLaunch(e: Event): Promise<void> {
 }
 
 onMounted(async () => {
+  version.value = await getVersion()
   launchAtLogin.value = await isEnabled()
   if (store.settings.notifications && !(await notificationsAllowed(false))) {
     notifyStatus.value = 'Not allowed yet. Subbrook will ask the first time a reminder is due.'
@@ -167,11 +186,24 @@ function saveTime(): void {
     <section class="row" aria-labelledby="set-fx">
       <div class="label">
         <h2 id="set-fx" class="heading">Exchange rates</h2>
-        <span class="meta">Totals in other currencies are converted with TCMB rates for lira, ECB otherwise. Subbrook only goes online for this, and only when you track more than one currency.</span>
+        <span class="meta">Totals in other currencies are converted with TCMB rates for lira, ECB otherwise. Rates are fetched only when you track more than one currency.</span>
         <span class="meta quiet">Last rates: {{ ratesLabel }}</span>
         <span v-if="fxStatus" class="meta" role="status">{{ fxStatus }}</span>
       </div>
       <button class="btn" :disabled="fxBusy" @click="updateRates">{{ fxBusy ? 'Updating…' : 'Update now' }}</button>
+    </section>
+
+    <section class="row" aria-labelledby="set-updates">
+      <div class="label">
+        <h2 id="set-updates" class="heading">Updates</h2>
+        <span class="meta">Version {{ version }}. Subbrook checks GitHub for a new version once a day — that and exchange rates are the only times it goes online.</span>
+        <span v-if="updateStatus || updater.lastError" class="meta" role="status">{{ updateStatus || `Last check failed: ${updater.lastError}` }}</span>
+      </div>
+      <div class="data-actions">
+        <label class="check"><input type="checkbox" :checked="store.settings.auto_update" @change="toggleAutoUpdate" /> Check automatically</label>
+        <button v-if="updater.ready" class="btn" :disabled="updater.installing" @click="installAndRestart">Restart to update</button>
+        <button v-else class="btn" :disabled="updater.checking" @click="checkNow">{{ updater.checking ? 'Checking…' : 'Check now' }}</button>
+      </div>
     </section>
 
     <section class="row" aria-labelledby="set-data">

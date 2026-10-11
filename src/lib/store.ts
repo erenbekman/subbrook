@@ -15,7 +15,7 @@ export const store = reactive({
   payments: [] as Payment[],
   settings: {
     currency: 'TRY', reminder_days: 3, reminder_time: '09:00', onboarded: false,
-    notifications: true, notifications_asked: false, fx_checked_at: '',
+    notifications: true, notifications_asked: false, fx_checked_at: '', auto_update: true, update_checked_at: '',
   } as Settings,
   rates: [] as FxRate[],
 })
@@ -55,6 +55,8 @@ export async function load(): Promise<void> {
       notifications: settings.notifications !== 'false',
       notifications_asked: settings.notifications_asked === 'true',
       fx_checked_at: settings.fx_checked_at ?? '',
+      auto_update: settings.auto_update !== 'false',
+      update_checked_at: settings.update_checked_at ?? '',
     }
     if (subscriptions.length && !store.settings.onboarded) {
       await repo.setSetting('onboarded', 'true')

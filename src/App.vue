@@ -15,6 +15,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { load, saveSetting, store } from './lib/store'
 import { refreshRates } from './lib/fx'
 import { exportFile } from './lib/export'
+import { checkInBackground, installAndRestart, updater } from './lib/update'
 import { checkReminders } from './lib/notify'
 import { today } from './lib/dates'
 import type { Subscription } from './lib/types'
@@ -78,12 +79,14 @@ async function refresh(): Promise<void> {
   day.value = today()
   refreshRates()
   checkReminders()
+  checkInBackground()
 }
 
 function tick(): void {
   if (today() !== day.value) { refresh(); return }
   refreshRates()
   checkReminders()
+  checkInBackground()
 }
 
 onMounted(async () => {
@@ -119,6 +122,11 @@ onBeforeUnmount(() => {
       <Settings v-else @import="view = 'import'" />
     </div>
 
+    <aside v-if="updater.ready && !updater.dismissed" class="update card" role="status">
+      <span><strong>Subbrook {{ updater.version }}</strong> is ready to install.</span>
+      <button class="btn" @click="updater.dismissed = true">Later</button>
+      <button class="btn" :disabled="updater.installing" @click="installAndRestart">{{ updater.installing ? 'Installing…' : 'Restart to update' }}</button>
+    </aside>
     <ShareSheet v-if="shareOpen" @close="shareOpen = false" />
     <CommandPalette v-if="paletteOpen" :commands="commands" @close="paletteOpen = false" />
     <SubscriptionSheet v-if="sheetOpen" :subscription="editing" @close="sheetOpen = false" @saved="onSaved" />
@@ -129,5 +137,6 @@ onBeforeUnmount(() => {
 .app { min-height: 100vh; display: flex; flex-direction: column; }
 .titlebar { display: flex; justify-content: center; min-height: 62px; padding: 14px 24px 0; position: sticky; top: 0; z-index: 10; }
 .views { display: contents; }
+.update { position: fixed; right: 24px; bottom: 24px; z-index: 40; display: flex; align-items: center; gap: 12px; padding: 14px 16px 14px 20px; font-size: 13px; }
 .error { margin: 24px auto 0; max-width: 720px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--rise-soft); color: var(--rise); font-weight: 600; }
 </style>

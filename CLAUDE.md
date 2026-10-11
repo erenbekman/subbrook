@@ -12,7 +12,8 @@ Domains: subbrook.com (primary), subrook.com (301 → subbrook.com).
 - **Distribution:** GitHub Releases (notarized DMG / MSI / AppImage + auto-update) first, Mac App Store later.
 - **AI screenshot import:** not in v1. Bank-statement import is heuristic (no AI cost).
 - **Runs in the menu bar.** Closing the window hides it; quit via tray menu or ⌘Q. "Open at login" (autostart) starts hidden. Needed because desktop notifications only fire while the app runs.
-- **Network:** only for FX rates (TCMB for TRY pairs, ECB fallback/cross), only when more than one currency is tracked; URLs allow-listed in `capabilities/default.json`.
+- **Network:** only FX rates (TCMB for TRY pairs, ECB fallback/cross; only when more than one currency is tracked; URLs allow-listed in `capabilities/default.json`) and a daily update check against GitHub Releases (can be turned off in Settings).
+- **Updates:** `tauri-plugin-updater`, minisign key owned by the maintainer (private key only in GitHub Secrets / password manager). Version source is `package.json` (`npm version X --no-git-tag-version`). Updater artifacts are built only in CI via `src-tauri/tauri.release.conf.json`. Downloads in background, installs on "Restart to update".
 - **Statement import:** generic column mapper (CSV / XLSX via `calamine` / text PDF via pdf.js legacy build); bank-specific presets only from real (anonymized) sample files. Files are parsed in memory, never stored.
 - **Calendar:** one-time `.ics` export (RRULE), not a feed — a feed would need a server.
 

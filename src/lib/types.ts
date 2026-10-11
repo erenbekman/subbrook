@@ -27,6 +27,8 @@ export interface Settings {
   notifications: boolean
   notifications_asked: boolean
   fx_checked_at: string
+  auto_update: boolean
+  update_checked_at: string
 }
 
 export interface FxRate {
