@@ -30,6 +30,21 @@ jobs:
         shell: bash
         run: test -n "$(node -p "require('./src-tauri/tauri.conf.json').plugins.updater.pubkey")"
 
+      - name: Require the Apple signing secrets
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            if [ -z "${!name}" ]; then echo "::error::Missing secret $name"; exit 1; fi
+          done
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -56,6 +71,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: Subbrook ${{ github.ref_name }}
@@ -64,6 +85,17 @@ jobs:
           prerelease: false
           uploadUpdaterJson: true
           args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json
+
+      - name: Check that macOS accepts the app
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        run: |
+          dmg=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg)
+          mnt=$(mktemp -d)
+          hdiutil attach -readonly -nobrowse -mountpoint "$mnt" "$dmg"
+          spctl --assess --type execute --verbose=2 "$mnt/Subbrook.app"
+          xcrun stapler validate "$mnt/Subbrook.app"
+          hdiutil detach "$mnt"
 
       - name: Upload the macOS download under a stable name
         if: matrix.platform == 'macos-latest'
