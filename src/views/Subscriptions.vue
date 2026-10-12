@@ -17,7 +17,8 @@ const STATUSES: { value: PaymentStatus; label: string }[] = [
   { value: 'paid', label: 'Paid' }, { value: 'skipped', label: 'Skipped' }, { value: 'refunded', label: 'Refunded' },
 ]
 const query = ref('')
-const filter = ref<'all' | 'trials' | 'shared' | 'paused'>('all')
+const FILTERS = ['all', 'trials', 'shared', 'paused', 'cancelled'] as const
+const filter = ref<(typeof FILTERS)[number]>('all')
 const tab = ref<'overview' | 'payments' | 'notes'>('overview')
 const methodFilter = ref<number | null>(null)
 const tagFilter = ref<number | null>(null)
@@ -48,10 +49,12 @@ const list = computed(() => {
     if (q && !matches(s, q)) return false
     if (methodFilter.value !== null && s.payment_method_id !== methodFilter.value) return false
     if (tagFilter.value !== null && !s.tags.some((t) => t.id === tagFilter.value)) return false
+    if (filter.value === 'cancelled') return s.status === 'cancelled'
+    if (s.status === 'cancelled') return false
     if (filter.value === 'trials') return !!s.trial_ends && s.trial_ends >= t
     if (filter.value === 'shared') return s.share_count > 1
     if (filter.value === 'paused') return s.status === 'paused'
-    return s.status !== 'cancelled'
+    return true
   })
 })
 
@@ -91,9 +94,25 @@ function cycleLabel(s: Subscription): string {
   return `Every ${s.interval_count} ${unit}s`
 }
 
+const isCancelled = computed(() => current.value?.status === 'cancelled')
+const badge = computed(() => {
+  const s = current.value
+  if (!s) return { cls: '', label: '' }
+  if (s.status === 'cancelled') return { cls: 'badge-muted', label: 'Cancelled' }
+  if (s.status === 'paused') return { cls: 'badge-muted', label: 'Paused' }
+  if (s.trial_ends && s.trial_ends >= t) return { cls: 'badge-trial', label: 'Trial' }
+  return { cls: 'badge-paid', label: 'Active' }
+})
+
+function statusLabel(s: Subscription): string {
+  if (s.status === 'cancelled') return 'Cancelled'
+  if (s.status === 'paused') return 'Paused'
+  return `${cycleLabel(s)} · ${relativeDay(nextChargeOnOrAfter(s, t))}`
+}
+
 const next = computed(() => (current.value ? nextChargeOnOrAfter(current.value, t) : t))
 const nextThree = computed(() => {
-  if (!current.value) return []
+  if (!current.value || isCancelled.value) return []
   const s = current.value
   const out = [next.value]
   while (out.length < 3) out.push(addInterval(out[out.length - 1], s.interval_unit, s.interval_count))
@@ -113,7 +132,7 @@ const facts = computed(() => {
   const months = Math.max(0, Math.floor(daysBetween(s.start_date, t) / 30.4375))
   return [
     ['Billing', cycleLabel(s)],
-    ['Next payment', fromISO(next.value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })],
+    ['Next payment', isCancelled.value ? '—' : fromISO(next.value).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })],
     ['Started', fromISO(s.start_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })],
     ['Per month', perMonth(s)],
     ['Shared by', s.share_count > 1 ? `${s.share_count} people` : 'Just you'],
@@ -152,7 +171,7 @@ const perUse = computed(() => {
           <label class="sr-only" for="q">Search subscriptions</label>
           <input id="q" v-model="query" class="input" placeholder="Search" />
           <div class="filters">
-            <button v-for="f in (['all', 'trials', 'shared', 'paused'] as const)" :key="f" class="pill" :class="{ on: filter === f }" @click="filter = f">
+            <button v-for="f in FILTERS" :key="f" class="pill" :class="{ on: filter === f }" @click="filter = f">
               {{ f[0].toUpperCase() + f.slice(1) }}
             </button>
             <label v-if="store.paymentMethods.length" class="pill select-pill" :class="{ on: methodFilter !== null }">
@@ -176,7 +195,7 @@ const perUse = computed(() => {
             <ServiceTile :name="s.name" :color="s.category_color" :trial="!!s.trial_ends && s.trial_ends >= t" />
             <span class="who">
               <strong>{{ s.name }}</strong>
-              <span class="meta">{{ s.status === 'paused' ? 'Paused' : cycleLabel(s) }} · {{ relativeDay(nextChargeOnOrAfter(s, t)) }}</span>
+              <span class="meta">{{ statusLabel(s) }}</span>
             </span>
             <strong>{{ formatMoney(s.amount_minor, s.currency) }}</strong>
           </button>
@@ -184,6 +203,7 @@ const perUse = computed(() => {
             <strong>No subscriptions yet</strong>
             <span class="meta">Add one and it shows up here with its next charge, price history and notes.</span>
           </div>
+          <p v-else-if="!list.length && filter === 'cancelled' && !query.trim() && methodFilter === null && tagFilter === null" class="meta">No cancelled subscriptions.</p>
           <p v-else-if="!list.length && filtered" class="meta">Nothing matches. <button class="text-btn" @click="clearFilters">Clear filters</button></p>
           <p v-else-if="!list.length" class="meta">No active subscriptions.</p>
         </div>
@@ -195,22 +215,21 @@ const perUse = computed(() => {
           <div class="grow">
             <div class="title-row">
               <h2 id="detail-title" class="title">{{ current.name }}</h2>
-              <span class="badge" :class="current.status === 'paused' ? 'badge-muted' : current.trial_ends && current.trial_ends >= t ? 'badge-trial' : 'badge-paid'">
-                {{ current.status === 'paused' ? 'Paused' : current.trial_ends && current.trial_ends >= t ? 'Trial' : 'Active' }}
-              </span>
+              <span class="badge" :class="badge.cls">{{ badge.label }}</span>
             </div>
             <span class="meta">{{ current.category_name ?? 'Uncategorized' }} · since {{ fromISO(current.start_date).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) }}</span>
           </div>
           <div class="actions">
             <button class="btn" @click="emit('edit', current)">Edit</button>
-            <button class="btn" @click="setStatus(current.id, current.status === 'paused' ? 'active' : 'paused')">{{ current.status === 'paused' ? 'Resume' : 'Pause' }}</button>
+            <button v-if="isCancelled" class="btn" @click="setStatus(current.id, 'active')">Reactivate</button>
+            <button v-else class="btn" @click="setStatus(current.id, current.status === 'paused' ? 'active' : 'paused')">{{ current.status === 'paused' ? 'Resume' : 'Pause' }}</button>
           </div>
         </div>
 
         <div class="price-row">
           <span class="figure-xl price">{{ formatMoney(current.amount_minor, current.currency) }}</span>
           <span class="meta">{{ cycleLabel(current).toLowerCase() }}{{ current.share_count > 1 ? ` · you pay ${formatMoney(shareMinor(current), current.currency)}` : '' }}</span>
-          <span class="meta push">Next <strong>{{ relativeDay(next) }}</strong></span>
+          <span v-if="!isCancelled" class="meta push">Next <strong>{{ relativeDay(next) }}</strong></span>
         </div>
 
         <div class="tabs" role="tablist">
@@ -240,7 +259,7 @@ const perUse = computed(() => {
         </div>
 
         <div v-else-if="tab === 'payments'" class="payments">
-          <span class="caption">Next charges</span>
+          <span v-if="nextThree.length" class="caption">Next charges</span>
           <div v-for="d in nextThree" :key="d" class="line-row">
             <span class="grow">{{ fromISO(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) }}</span>
             <div v-if="d <= t" class="segmented" role="radiogroup" :aria-label="`Status of ${d} payment`">
@@ -273,7 +292,7 @@ const perUse = computed(() => {
 
         <div class="foot">
           <a v-if="current.cancel_url" :href="current.cancel_url" @click.prevent="openUrl(current.cancel_url)">Open cancel page →</a>
-          <button class="btn push" @click="setStatus(current.id, 'cancelled')">Mark as cancelled</button>
+          <button v-if="!isCancelled" class="btn push" @click="setStatus(current.id, 'cancelled')">Mark as cancelled</button>
         </div>
       </article>
     </main>
