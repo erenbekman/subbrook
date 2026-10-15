@@ -8,6 +8,7 @@ import { latestRates, refreshRates } from '../lib/fx'
 import { notificationsAllowed } from '../lib/notify'
 import { exportFile } from '../lib/export'
 import { getVersion } from '@tauri-apps/api/app'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import { checkForUpdate, installAndRestart, updater } from '../lib/update'
 import { getTheme, setTheme, type ThemeChoice } from '../lib/theme'
 
@@ -82,7 +83,9 @@ async function saveExport(kind: 'csv' | 'ics'): Promise<void> {
   }
 }
 
+const REPO = 'https://github.com/erenbekman/subbrook'
 const version = ref('')
+const issueUrl = (template: string) => `${REPO}/issues/new?template=${template}&version=${encodeURIComponent(version.value)}`
 const updateStatus = ref('')
 
 async function checkNow(): Promise<void> {
@@ -216,6 +219,18 @@ function saveTime(): void {
         <button class="btn" @click="emit('import')">Import statement</button>
         <button class="btn" @click="saveExport('csv')">Export CSV</button>
         <button class="btn" @click="saveExport('ics')">Export calendar</button>
+      </div>
+    </section>
+
+    <section class="row" aria-labelledby="set-feedback">
+      <div class="label">
+        <h2 id="set-feedback" class="heading">Feedback</h2>
+        <span class="meta">Subbrook is free and built in the open. A star helps other people find it; bug reports and ideas help it get better.</span>
+      </div>
+      <div class="data-actions">
+        <button class="btn" @click="openUrl(REPO)">Star on GitHub</button>
+        <button class="btn" @click="openUrl(issueUrl('bug_report.yml'))">Report a bug</button>
+        <button class="btn" @click="openUrl(issueUrl('feature_request.yml'))">Suggest a feature</button>
       </div>
     </section>
 

@@ -34,11 +34,12 @@ Domains: subbrook.com (primary), subrook.com (301 → subbrook.com).
 - Wordmark: "subbrook", two-tone — **sub** in leaf/mint, **brook** in ink. Icon source: `app-icon.svg` (`npx tauri icon app-icon.svg` regenerates icons).
 
 ## Status
-**M1–M3 implemented** (migrations 0001–0004). `npm run build` and `cargo build` clean; runs with `npm run tauri dev` on macOS.
+**M1–M3 implemented** (migrations 0001–0005). v0.1.4 released: signed + notarized macOS DMG, auto-updater live. `npm run build` and `cargo build` clean; runs with `npm run tauri dev` on macOS.
 
 Open items:
 - Bank presets (Garanti BBVA, İş, Akbank, Yapı Kredi) — waiting for anonymized sample exports.
-- Cancelled subscriptions can't be listed or reactivated yet.
+- Service catalog (Netflix, ChatGPT, … with plans and prices) as a bundled JSON in the repo; no network fetch.
+- Family use: shared DB through an iCloud Drive / Dropbox folder. Needs a design + pre-mortem before code (SQLite must not be written by two Macs at once).
 - Deferred: tray "Quick add" (free-text parser), "Category ▾" filter in Subscriptions.
 - Known limit: a stored `next_due` clamped to a short month (31 → 28 Feb) keeps the shorter day; fixing it needs a billing-day column.
 - Notifications need a bundled `.app` to show reliably (`npm run tauri build -- --debug --bundles app`).

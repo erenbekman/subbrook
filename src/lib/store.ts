@@ -153,6 +153,36 @@ export async function updatePaymentMethod(id: number, name: string, kind: Paymen
   }
 }
 
+export const CATEGORY_COLORS = ['cat-1', 'cat-2', 'cat-3', 'cat-4', 'cat-5', 'cat-6']
+
+export function nextCategoryColor(): string {
+  return CATEGORY_COLORS[store.categories.length % CATEGORY_COLORS.length]
+}
+
+export async function createCategory(name: string, color = nextCategoryColor()): Promise<number> {
+  try {
+    const id = await repo.createCategory(name.trim(), color)
+    await load()
+    return id
+  } catch (e) {
+    throw isDuplicate(e) ? new Error(`“${name.trim()}” already exists.`) : e
+  }
+}
+
+export async function updateCategory(id: number, name: string, color: string): Promise<void> {
+  try {
+    await repo.updateCategory(id, name.trim(), color)
+    await load()
+  } catch (e) {
+    throw isDuplicate(e) ? new Error(`“${name.trim()}” already exists.`) : e
+  }
+}
+
+export async function deleteCategory(id: number): Promise<void> {
+  await repo.deleteCategory(id)
+  await load()
+}
+
 export async function deletePaymentMethod(id: number): Promise<void> {
   await repo.deletePaymentMethod(id)
   await load()

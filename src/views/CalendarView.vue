@@ -152,7 +152,7 @@ const short = (minor: number, c: string) => formatMoney(minor, c).replace(/[.,]0
 .page { width: 100%; max-width: 1320px; margin: 0 auto; padding: 40px 40px 56px; display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; }
 .grid-col { flex: 999 1 720px; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
 .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.round { width: 36px; padding: 0; }
+.round { width: 40px; padding: 0; }
 .cal { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; }
 .cal-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)) 96px; gap: 6px; }
 .right { text-align: right; }

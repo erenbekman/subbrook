@@ -1,0 +1,24 @@
+name: Bug report
+description: Something in Subbrook doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead? Screenshots help.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Subbrook version
+      description: Settings → Updates shows it.
+      placeholder: 0.1.4
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: macOS 15.3, Windows 11, Ubuntu 24.04…

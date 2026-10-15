@@ -1,12 +1,63 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { store } from '../lib/store'
+import { computed, reactive, ref, watch } from 'vue'
+import { CATEGORY_COLORS, createCategory, deleteCategory, nextCategoryColor, store, updateCategory } from '../lib/store'
 import { formatMoney, monthlyMinor } from '../lib/money'
 import { sumInPrimary } from '../lib/fx'
 import ServiceTile from '../components/ServiceTile.vue'
 import type { Subscription } from '../lib/types'
 
 const emit = defineEmits<{ add: []; open: [id: number] }>()
+
+const COLOR_NAMES: Record<string, string> = { 'cat-1': 'Green', 'cat-2': 'Blue', 'cat-3': 'Indigo', 'cat-4': 'Plum', 'cat-5': 'Olive', 'cat-6': 'Clay' }
+const editing = ref(false)
+const edits = reactive<Record<number, { name: string; color: string }>>({})
+const newName = ref('')
+const newColor = ref(nextCategoryColor())
+const armed = ref<number | null>(null)
+const manageError = ref('')
+
+watch(() => store.categories, (list) => {
+  for (const c of list) edits[c.id] ??= { name: c.name, color: c.color }
+}, { immediate: true })
+
+const usedBy = (id: number) => store.subscriptions.filter((s) => s.category_id === id).length
+
+function isEdited(id: number): boolean {
+  const c = store.categories.find((x) => x.id === id)
+  return !!c && (c.name !== edits[id].name.trim() || c.color !== edits[id].color)
+}
+
+async function run(action: () => Promise<void>): Promise<void> {
+  manageError.value = ''
+  try {
+    await action()
+  } catch (e) {
+    manageError.value = e instanceof Error ? e.message : String(e)
+  }
+}
+
+async function addCategory(): Promise<void> {
+  if (!newName.value.trim()) { manageError.value = 'Name the category.'; return }
+  await run(async () => {
+    await createCategory(newName.value, newColor.value)
+    newName.value = ''
+    newColor.value = nextCategoryColor()
+  })
+}
+
+async function saveCategory(id: number): Promise<void> {
+  if (!edits[id].name.trim()) { manageError.value = 'Name the category.'; return }
+  await run(() => updateCategory(id, edits[id].name, edits[id].color))
+}
+
+async function removeCategory(id: number): Promise<void> {
+  if (armed.value !== id) { armed.value = id; return }
+  armed.value = null
+  await run(async () => {
+    await deleteCategory(id)
+    delete edits[id]
+  })
+}
 
 // Monthly cost per category, converted to the primary currency when rates exist; otherwise in the leading currency.
 const groups = computed(() => {
@@ -47,9 +98,40 @@ function label(g: Group): string {
 <template>
   <main class="page">
     <div class="head">
-      <span class="caption">{{ groups.length }} categories · per month</span>
-      <h1 class="title">Categories</h1>
+      <div class="head-text">
+        <span class="caption">{{ groups.length }} categories · per month</span>
+        <h1 class="title">Categories</h1>
+      </div>
+      <button class="btn" :aria-expanded="editing" @click="editing = !editing; armed = null">{{ editing ? 'Done' : 'Edit categories' }}</button>
     </div>
+
+    <section v-if="editing" class="manage" aria-label="Edit categories">
+      <div v-for="c in store.categories" :key="c.id" class="manage-row">
+        <div class="swatches" role="radiogroup" :aria-label="`Color of ${c.name}`">
+          <button
+            v-for="col in CATEGORY_COLORS" :key="col" role="radio" class="swatch-btn" :aria-checked="edits[c.id].color === col"
+            :aria-label="COLOR_NAMES[col]" :style="{ background: `var(--${col})` }" @click="edits[c.id].color = col"
+          />
+        </div>
+        <input v-model="edits[c.id].name" class="input grow" :aria-label="`Name of ${c.name}`" autocomplete="off" @keydown.enter="saveCategory(c.id)" />
+        <span class="meta used">{{ usedBy(c.id) }} {{ usedBy(c.id) === 1 ? 'subscription' : 'subscriptions' }}</span>
+        <button class="btn" :disabled="!isEdited(c.id)" @click="saveCategory(c.id)">Save</button>
+        <button class="btn btn-danger" @click="removeCategory(c.id)">
+          {{ armed !== c.id ? 'Delete' : usedBy(c.id) ? `Used by ${usedBy(c.id)} — click again` : 'Click again to delete' }}
+        </button>
+      </div>
+      <div class="manage-row">
+        <div class="swatches" role="radiogroup" aria-label="Color of the new category">
+          <button
+            v-for="col in CATEGORY_COLORS" :key="col" role="radio" class="swatch-btn" :aria-checked="newColor === col"
+            :aria-label="COLOR_NAMES[col]" :style="{ background: `var(--${col})` }" @click="newColor = col"
+          />
+        </div>
+        <input v-model="newName" class="input grow" placeholder="New category" aria-label="New category name" autocomplete="off" @keydown.enter="addCategory" />
+        <button class="btn" @click="addCategory">Add category</button>
+      </div>
+      <p v-if="manageError" class="error" role="alert">{{ manageError }}</p>
+    </section>
 
     <div v-if="lead[1]" class="bar" role="img" aria-label="Share of monthly spend by category">
       <div v-for="g in groups" :key="g.name" class="bar-seg" :style="{ flexGrow: Math.max(1, valueOf(g)), background: `var(--${g.color})` }">
@@ -85,7 +167,16 @@ function label(g: Group): string {
 
 <style scoped>
 .page { width: 100%; max-width: 1180px; margin: 0 auto; padding: 48px 48px 64px; display: flex; flex-direction: column; gap: 28px; }
-.head { display: flex; flex-direction: column; gap: 8px; }
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.head-text { display: flex; flex-direction: column; gap: 8px; }
+.manage { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.manage-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.manage-row .grow { flex: 1 1 200px; min-width: 0; }
+.swatches { display: flex; gap: 6px; }
+.swatch-btn { width: 20px; height: 20px; padding: 0; border: 0; border-radius: 7px; cursor: pointer; }
+.swatch-btn[aria-checked='true'] { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink); }
+.used { width: 110px; }
+.error { margin: 8px 0 0; color: var(--rise); font-weight: 600; }
 .bar { display: flex; gap: 4px; height: 40px; }
 .bar-seg { min-width: 28px; flex-basis: 0; border-radius: 10px; display: flex; align-items: center; padding: 0 12px; overflow: hidden; }
 .bar-seg span { font-size: 12px; font-weight: 700; color: var(--paper); }

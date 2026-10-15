@@ -7,7 +7,10 @@ import type { Occurrence } from './types'
 
 /** Everything the Overview and Calendar need about one month, derived from the store. */
 export function useMonth(year: Ref<number>, month0: Ref<number>) {
-  const range = computed(() => monthRange(year.value, month0.value))
+  return usePeriod(computed(() => monthRange(year.value, month0.value)))
+}
+
+export function usePeriod(range: Ref<{ from: string; to: string }>) {
   const t = today()
 
   const statusByKey = computed(() => new Map(store.payments.map((p) => [`${p.subscription_id}|${p.due_date}`, p.status])))

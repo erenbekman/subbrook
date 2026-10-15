@@ -18,6 +18,21 @@ export async function listCategories(): Promise<Category[]> {
   return (await db()).select<Category[]>('SELECT id, name, color, position FROM categories ORDER BY position, name')
 }
 
+export async function createCategory(name: string, color: string): Promise<number> {
+  const res = await (await db()).execute(
+    'INSERT INTO categories (name, color, position) VALUES ($1, $2, (SELECT COALESCE(MAX(position), 0) + 1 FROM categories))',
+    [name, color])
+  return Number(res.lastInsertId)
+}
+
+export async function updateCategory(id: number, name: string, color: string): Promise<void> {
+  await (await db()).execute('UPDATE categories SET name = $1, color = $2 WHERE id = $3', [name, color, id])
+}
+
+export async function deleteCategory(id: number): Promise<void> {
+  await (await db()).execute('DELETE FROM categories WHERE id = $1', [id])
+}
+
 export async function listSubscriptions(): Promise<Subscription[]> {
   const rows = await (await db()).select<(Omit<Subscription, 'tags'> & { tags_json: string })[]>(
     `SELECT s.*, c.name AS category_name, c.color AS category_color, pm.name AS payment_method_name,

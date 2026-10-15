@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { store } from '../lib/store'
-import { useMonth } from '../lib/month'
-import { fromISO, nextChargeOnOrAfter, relativeDay, today } from '../lib/dates'
+import { useMonth, usePeriod } from '../lib/month'
+import { fromISO, nextChargeOnOrAfter, relativeDay, today, weekRange, yearRange } from '../lib/dates'
 import { formatMoney, shareMinor, splitDecimals } from '../lib/money'
 import { convert, latestRates } from '../lib/fx'
 import type { Occurrence } from '../lib/types'
@@ -13,10 +13,25 @@ const emit = defineEmits<{ add: []; import: []; share: []; open: [id: number] }>
 const now = new Date()
 const year = ref(now.getFullYear())
 const month0 = ref(now.getMonth())
-const { range, occurrences, totals } = useMonth(year, month0)
+const { range, occurrences } = useMonth(year, month0)
 const t = today()
 
+type Period = 'week' | 'month' | 'year'
+const PERIODS: { value: Period; label: string }[] = [{ value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }, { value: 'year', label: 'Year' }]
+const saved = localStorage.getItem('subbrook.period')
+const period = ref<Period>(saved === 'week' || saved === 'year' ? saved : 'month')
+watch(period, (p) => localStorage.setItem('subbrook.period', p))
+
+const periodRange = computed(() => (period.value === 'week' ? weekRange(t) : period.value === 'year' ? yearRange(year.value) : range.value))
+const { occurrences: periodOccurrences, totals } = usePeriod(periodRange)
+
 const monthLabel = computed(() => new Date(year.value, month0.value, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }))
+const periodLabel = computed(() => {
+  if (period.value === 'year') return String(year.value)
+  if (period.value === 'month') return monthLabel.value
+  const fmt = (d: string) => fromISO(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  return `${fmt(periodRange.value.from)} – ${fmt(periodRange.value.to)}`
+})
 
 // Converted totals lead when rates exist; otherwise the primary currency, or the largest total.
 const converted = computed(() => totals.value.converted)
@@ -41,9 +56,9 @@ const rateNote = computed(() => {
 function inPrimary(o: Occurrence): number | null {
   return convert(shareMinor(o.sub), o.sub.currency, store.settings.currency, o.date < t ? o.date : t)
 }
-const upcomingCount = computed(() => occurrences.value.filter((o) => o.date >= t).length)
+const upcomingCount = computed(() => periodOccurrences.value.filter((o) => o.date >= t).length)
 
-const segments = computed(() => occurrences.value.filter((o) => o.status !== 'skipped' && o.status !== 'refunded').map((o) => ({
+const segments = computed(() => periodOccurrences.value.filter((o) => o.status !== 'skipped' && o.status !== 'refunded').map((o) => ({
   key: o.sub.id + o.date,
   grow: Math.max(1, inPrimary(o) ?? shareMinor(o.sub)),
   kind: o.status === 'paid' ? 'paid' : o.isTrialEnd || (o.sub.trial_ends && o.sub.trial_ends >= o.date) ? 'trial' : 'due',
@@ -90,10 +105,13 @@ const ticks = computed(() => [1, 8, 15, 22, 29].filter((d) => d <= daysInMonth.v
     </section>
 
     <template v-else>
-      <section class="hero" aria-label="This month">
+      <section class="hero" :aria-label="periodLabel">
         <div class="hero-main">
           <div class="caption-row">
-            <span class="caption">{{ monthLabel }}</span>
+            <span class="caption">{{ periodLabel }}</span>
+            <div class="segmented" role="radiogroup" aria-label="Period">
+              <button v-for="p in PERIODS" :key="p.value" role="radio" :aria-checked="period === p.value" @click="period = p.value">{{ p.label }}</button>
+            </div>
             <button class="btn share" @click="emit('share')">Share</button>
           </div>
           <div class="figure-xl">{{ hero[0] }}<span class="quiet">{{ hero[1] }}</span></div>
@@ -140,6 +158,7 @@ const ticks = computed(() => [1, 8, 15, 22, 29].filter((d) => d <= daysInMonth.v
       <section aria-labelledby="stmt">
         <div class="section-head">
           <h2 id="stmt" class="heading">Statement</h2>
+          <span class="meta">{{ monthLabel }}</span>
         </div>
         <template v-for="(o, i) in occurrences" :key="o.sub.id + o.date">
           <div v-if="o.date >= t && (i === 0 || occurrences[i - 1].date < t)" class="today-rule caption">
@@ -167,7 +186,8 @@ const ticks = computed(() => [1, 8, 15, 22, 29].filter((d) => d <= daysInMonth.v
 .page { width: 100%; max-width: 1180px; margin: 0 auto; padding: 48px 48px 64px; display: flex; flex-direction: column; gap: 44px; }
 .empty-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .empty { margin: 12vh auto 0; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
-.caption-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.caption-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 16px; }
+.caption-row .share { margin-left: auto; }
 .share { height: 30px; padding: 0 12px; font-size: 12px; }
 .hero { display: flex; flex-wrap: wrap; gap: 32px 72px; align-items: flex-end; }
 .hero-main { flex: 3 1 440px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
@@ -195,7 +215,7 @@ const ticks = computed(() => [1, 8, 15, 22, 29].filter((d) => d <= daysInMonth.v
 .disc.trial { background: transparent; border: 1.5px dashed var(--trial); color: var(--trial); }
 .disc-label { font-size: 11px; font-weight: 700; color: var(--ink-2); white-space: nowrap; }
 
-.section-head { padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.section-head { display: flex; align-items: baseline; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 .today-rule { display: flex; align-items: center; gap: 10px; padding: 10px 0; color: var(--brand); font-size: 10px; }
 .rule-line { flex: 1; height: 1px; background: var(--brand); }
 .row { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--line); }

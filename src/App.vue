@@ -26,6 +26,13 @@ const editing = ref<Subscription | null>(null)
 const selectedId = ref<number | null>(null)
 const onboarding = computed(() => store.ready && !store.error && !store.settings.onboarded && store.subscriptions.length === 0)
 
+const sheetRef = ref<InstanceType<typeof SubscriptionSheet> | null>(null)
+
+function toggleSheet(): void {
+  if (sheetOpen.value) sheetRef.value?.dismiss()
+  else openNew()
+}
+
 function openNew(): void {
   editing.value = null
   sheetOpen.value = true
@@ -106,8 +113,8 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="app">
-    <header class="titlebar" data-tauri-drag-region>
-      <Dock v-if="!onboarding" v-model="view" @add="openNew" @search="paletteOpen = true" />
+    <header class="titlebar" :class="{ raised: sheetOpen }" data-tauri-drag-region>
+      <Dock v-if="!onboarding" v-model="view" :open="sheetOpen" @add="toggleSheet" @search="paletteOpen = true" />
     </header>
 
     <p v-if="store.error" class="error" role="alert">Subbrook couldn't open its database: {{ store.error }}</p>
@@ -129,13 +136,14 @@ onBeforeUnmount(() => {
     </aside>
     <ShareSheet v-if="shareOpen" @close="shareOpen = false" />
     <CommandPalette v-if="paletteOpen" :commands="commands" @close="paletteOpen = false" />
-    <SubscriptionSheet v-if="sheetOpen" :subscription="editing" @close="sheetOpen = false" @saved="onSaved" />
+    <SubscriptionSheet v-if="sheetOpen" ref="sheetRef" :subscription="editing" @close="sheetOpen = false" @saved="onSaved" />
   </div>
 </template>
 
 <style scoped>
 .app { min-height: 100vh; display: flex; flex-direction: column; }
 .titlebar { display: flex; justify-content: center; min-height: 62px; padding: 14px 24px 0; position: sticky; top: 0; z-index: 10; }
+.titlebar.raised { z-index: 60; }
 .views { display: contents; }
 .update { position: fixed; right: 24px; bottom: 24px; z-index: 40; display: flex; align-items: center; gap: 12px; padding: 14px 16px 14px 20px; font-size: 13px; }
 .error { margin: 24px auto 0; max-width: 720px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--rise-soft); color: var(--rise); font-weight: 600; }

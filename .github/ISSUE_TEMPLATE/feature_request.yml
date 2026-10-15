@@ -1,0 +1,21 @@
+name: Feature request
+description: An idea that would make Subbrook more useful
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The situation or problem, in your own words.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
+      description: How you imagine it working. Rough is fine.
+  - type: input
+    id: version
+    attributes:
+      label: Subbrook version
+      placeholder: 0.1.4

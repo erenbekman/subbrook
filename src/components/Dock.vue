@@ -2,6 +2,7 @@
 export type View = 'overview' | 'calendar' | 'subscriptions' | 'categories' | 'settings' | 'import'
 
 const view = defineModel<View>({ required: true })
+defineProps<{ open?: boolean }>()
 defineEmits<{ add: []; search: [] }>()
 
 const items: { id: View; label: string; key: string }[] = [
@@ -13,7 +14,7 @@ const items: { id: View; label: string; key: string }[] = [
 </script>
 
 <template>
-  <nav class="dock" aria-label="Main">
+  <nav class="dock" :class="{ open }" aria-label="Main">
     <button
       v-for="item in items"
       :key="item.id"
@@ -26,7 +27,7 @@ const items: { id: View; label: string; key: string }[] = [
     </button>
     <span class="sep" aria-hidden="true" />
     <button class="item search" aria-label="Search (⌘K)" title="Search (⌘K)" @click="$emit('search')">⌘K</button>
-    <button class="add" aria-label="Add subscription (⌘N)" title="Add subscription (⌘N)" @click="$emit('add')">+</button>
+    <button class="add" :class="{ open }" :aria-label="open ? 'Close' : 'Add subscription (⌘N)'" :title="open ? 'Close' : 'Add subscription (⌘N)'" @click="$emit('add')">+</button>
     <button
       class="item gear" aria-label="Settings (⌘,)" title="Settings (⌘,)"
       :aria-current="view === 'settings' ? 'page' : undefined" @click="view = 'settings'"
@@ -42,12 +43,19 @@ const items: { id: View; label: string; key: string }[] = [
 <style scoped>
 .dock {
   display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px;
-  background: var(--dock); border-radius: var(--radius-pill); box-shadow: var(--shadow-dock);
+  background: var(--dock); border-radius: 24px; box-shadow: var(--shadow-dock);
+  transition: background-color 240ms ease, border-radius 240ms ease, box-shadow 240ms ease;
 }
+.dock.open { background: var(--surface); border-radius: 24px 24px 0 0; box-shadow: none; }
+.dock.open .item { color: var(--ink-2); }
+.dock.open .item:hover { color: var(--ink); }
+.dock.open .item[aria-current='page'] { background: var(--sunken); color: var(--ink); }
+.dock.open .sep { background: var(--line); }
 .item {
   display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px;
   border: 0; border-radius: var(--radius-pill); background: transparent;
   color: var(--on-dock-2); font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: color 240ms ease, background-color 240ms ease;
 }
 .item:hover { color: var(--on-dock); }
 .item[aria-current='page'] { background: rgba(223, 244, 235, 0.12); color: var(--on-dock); }
@@ -58,5 +66,8 @@ const items: { id: View; label: string; key: string }[] = [
 .add {
   width: 36px; height: 36px; border-radius: 50%; border: 0; cursor: pointer;
   background: #B0E4CC; color: #091413; font-size: 18px; font-weight: 600;
+  transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);
 }
+.add.open { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) { .add, .dock, .item { transition: none; } }
 </style>

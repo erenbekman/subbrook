@@ -100,6 +100,12 @@ pub fn run() {
             sql: include_str!("../migrations/0004_notifications_sent.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 5,
+            description: "more default categories",
+            sql: include_str!("../migrations/0005_more_categories.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
 
     let app = tauri::Builder::default()

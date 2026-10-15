@@ -34,6 +34,7 @@ async function finish(): Promise<void> {
       <div class="progress">
         <span class="caption">Step {{ step }} of 3</span>
         <span class="dots" aria-hidden="true"><span v-for="n in 3" :key="n" class="dot" :class="{ on: n <= step }" /></span>
+        <button v-if="step < 3" class="skip" @click="finish">Skip setup</button>
       </div>
 
       <template v-if="step === 1">
@@ -68,7 +69,6 @@ async function finish(): Promise<void> {
       </template>
 
       <p v-if="error" class="error" role="alert">{{ error }}</p>
-      <button v-if="step < 3" class="skip" @click="finish">Skip setup</button>
     </section>
   </main>
 </template>
@@ -76,7 +76,7 @@ async function finish(): Promise<void> {
 <style scoped>
 .page { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 10vh 24px 48px; }
 .panel { width: min(520px, 100%); display: flex; flex-direction: column; gap: 18px; padding: 36px; }
-.progress { display: flex; align-items: center; justify-content: space-between; }
+.progress { display: flex; align-items: center; gap: 12px; }
 .dots { display: flex; gap: 6px; }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line-strong); }
 .dot.on { background: var(--leaf); }
@@ -84,9 +84,9 @@ async function finish(): Promise<void> {
 .sub { color: var(--leaf); }
 .title { line-height: 1.25; }
 .meta { margin: 0; line-height: 1.55; }
-.big button { height: 36px; padding: 0 18px; font-size: 14px; }
+.big button { height: 34px; padding: 0 18px; font-size: 14px; }
 .actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; }
 .error { margin: 0; color: var(--rise); font-weight: 600; }
-.skip { align-self: center; border: 0; background: transparent; padding: 0; color: var(--ink-3); font-size: 12px; font-weight: 700; cursor: pointer; }
+.skip { margin-left: auto; border: 0; background: transparent; padding: 0; color: var(--ink-3); font-size: 12px; font-weight: 700; cursor: pointer; }
 .skip:hover { color: var(--ink); }
 </style>

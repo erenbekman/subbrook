@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { createPaymentMethod, deletePaymentMethod, remove, save, store, updatePaymentMethod } from '../lib/store'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { createCategory, createPaymentMethod, deletePaymentMethod, remove, save, store, updatePaymentMethod } from '../lib/store'
 import { CURRENCIES, formatMoney, parseAmount } from '../lib/money'
+import { searchServices, type Service } from '../lib/catalog'
+import { fold } from '../lib/statement'
+import ServiceTile from './ServiceTile.vue'
 import { today } from '../lib/dates'
 import type { IntervalUnit, PaymentMethodKind, Subscription, SubscriptionDraft } from '../lib/types'
 
@@ -45,11 +48,66 @@ const isTrial = ref(!!s?.trial_ends)
 const busy = ref(false)
 const error = ref('')
 const nameInput = ref<HTMLInputElement | null>(null)
+const amountInput = ref<HTMLInputElement | null>(null)
+const suggestOpen = ref(false)
+const activeSuggestion = ref(-1)
+const suggestions = computed(() => (s || !suggestOpen.value ? [] : searchServices(draft.name)))
+
+function categoryFor(service: Service) {
+  return service.category ? store.categories.find((c) => fold(c.name) === fold(service.category!)) : undefined
+}
+
+function onNameInput(): void {
+  suggestOpen.value = true
+  activeSuggestion.value = -1
+}
+
+function pickService(service: Service): void {
+  draft.name = service.name
+  const category = categoryFor(service)
+  if (category) categoryChoice.value = category.id
+  draft.website = service.website
+  if (service.manage_url) draft.cancel_url = service.manage_url
+  draft.interval_unit = service.unit
+  draft.interval_count = 1
+  suggestOpen.value = false
+  amountInput.value?.focus()
+}
+
+function onNameKey(e: KeyboardEvent): void {
+  const n = suggestions.value.length
+  if (!n) return
+  if (e.key === 'ArrowDown') { activeSuggestion.value = (activeSuggestion.value + 1) % n; e.preventDefault() }
+  else if (e.key === 'ArrowUp') { activeSuggestion.value = (activeSuggestion.value - 1 + n) % n; e.preventDefault() }
+  else if (e.key === 'Enter' && activeSuggestion.value >= 0) { pickService(suggestions.value[activeSuggestion.value]); e.preventDefault() }
+  else if (e.key === 'Escape') { suggestOpen.value = false; e.stopPropagation() }
+}
 
 const preview = computed(() => {
   const minor = parseAmount(amountText.value || '0')
   return minor ? formatMoney(minor, draft.currency) : ''
 })
+
+const NEW_CATEGORY = -1
+const categoryChoice = ref<number | null>(draft.category_id)
+const newCategory = ref('')
+const categoryError = ref('')
+
+async function addCategory(): Promise<void> {
+  categoryError.value = ''
+  if (!newCategory.value.trim()) { categoryError.value = 'Name the category.'; return }
+  try {
+    categoryChoice.value = await createCategory(newCategory.value)
+    newCategory.value = ''
+  } catch (e) {
+    categoryError.value = e instanceof Error ? e.message : String(e)
+  }
+}
+
+function cancelNewCategory(): void {
+  categoryChoice.value = draft.category_id
+  categoryError.value = ''
+}
 
 const methodChoice = ref<number | null>(draft.payment_method_id)
 const newMethod = reactive({ name: '', kind: 'card' as PaymentMethodKind })
@@ -107,6 +165,7 @@ async function submit(): Promise<void> {
   error.value = ''
   draft.amount_minor = parseAmount(amountText.value || '0')
   draft.payment_method_id = methodChoice.value === NEW_METHOD ? draft.payment_method_id : methodChoice.value
+  draft.category_id = categoryChoice.value === NEW_CATEGORY ? draft.category_id : categoryChoice.value
   if (!draft.name.trim()) { error.value = 'Give it a name.'; nameInput.value?.focus(); return }
   if (!draft.amount_minor) { error.value = 'Enter a price.'; return }
   draft.name = draft.name.trim()
@@ -114,6 +173,7 @@ async function submit(): Promise<void> {
   busy.value = true
   try {
     const id = await save({ ...draft })
+    await morphOut()
     emit('saved', id)
   } catch (e) {
     error.value = String(e)
@@ -128,30 +188,95 @@ async function destroy(): Promise<void> {
   if (!s) return
   if (!armed.value) { armed.value = true; return }
   await remove(s.id)
-  emit('close')
+  await dismiss()
 }
 
 function onKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape') emit('close')
+  if (e.key === 'Escape') dismiss()
 }
 
-onMounted(() => nameInput.value?.focus())
+const backdropEl = ref<HTMLElement | null>(null)
+const sheetEl = ref<HTMLElement | null>(null)
+const contentEl = ref<HTMLElement | null>(null)
+const place = reactive({ left: 0, top: 0, width: 640, attached: false })
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+let closing = false
+
+function measure(): void {
+  const dock = document.querySelector('.dock')?.getBoundingClientRect()
+  if (dock) {
+    Object.assign(place, { left: dock.left, top: dock.bottom - 1, width: dock.width, attached: true })
+  } else {
+    const width = Math.min(640, window.innerWidth - 32)
+    Object.assign(place, { left: (window.innerWidth - width) / 2, top: 72, width, attached: false })
+  }
+}
+
+async function growIn(): Promise<void> {
+  if (reduceMotion || !sheetEl.value || !contentEl.value) return
+  backdropEl.value?.animate([{ backgroundColor: 'transparent' }, {}], { duration: 240, easing: 'ease-out' })
+  contentEl.value.animate([{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], { duration: 200, delay: 120, easing: 'ease-out', fill: 'backwards' })
+  await sheetEl.value.animate([{ clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: 320, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' }).finished
+}
+
+async function morphOut(): Promise<void> {
+  if (reduceMotion || !sheetEl.value || !contentEl.value) return
+  contentEl.value.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 100, easing: 'ease-in', fill: 'forwards' })
+  backdropEl.value?.animate([{}, { backgroundColor: 'transparent' }], { duration: 240, easing: 'ease-in', fill: 'forwards' })
+  await sheetEl.value.animate([{ clipPath: 'inset(0 0 0 0)' }, { clipPath: 'inset(0 0 100% 0)' }], { duration: 240, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' }).finished
+}
+
+async function dismiss(): Promise<void> {
+  if (closing) return
+  closing = true
+  await morphOut()
+  emit('close')
+}
+
+defineExpose({ dismiss })
+
+onMounted(() => {
+  measure()
+  window.addEventListener('resize', measure)
+  nameInput.value?.focus()
+  growIn()
+})
+onBeforeUnmount(() => window.removeEventListener('resize', measure))
 </script>
 
 <template>
-  <div class="backdrop" @click.self="emit('close')" @keydown="onKey">
-    <form class="sheet card" role="dialog" aria-modal="true" aria-labelledby="sheet-title" @submit.prevent="submit">
+  <div ref="backdropEl" class="backdrop" @click.self="dismiss" @keydown="onKey">
+    <form
+      ref="sheetEl" class="sheet" :class="{ attached: place.attached }" role="dialog" aria-modal="true" aria-labelledby="sheet-title"
+      :style="{ left: `${place.left}px`, top: `${place.top}px`, width: `${place.width}px` }" @submit.prevent="submit"
+    >
+      <div ref="contentEl" class="content">
       <h2 id="sheet-title" class="title">{{ s ? `Edit ${s.name}` : 'New subscription' }}</h2>
 
-      <div class="field">
+      <div class="field name-field">
         <label for="f-name">Name</label>
-        <input id="f-name" ref="nameInput" v-model="draft.name" class="input" placeholder="Netflix" autocomplete="off" />
+        <input
+          id="f-name" ref="nameInput" v-model="draft.name" class="input" placeholder="Netflix, Spotify, or anything you pay for" autocomplete="off"
+          autocorrect="off" autocapitalize="off" spellcheck="false"
+          role="combobox" aria-autocomplete="list" aria-controls="service-list" :aria-expanded="suggestions.length > 0"
+          :aria-activedescendant="suggestions[activeSuggestion] ? `svc-${suggestions[activeSuggestion].id}` : undefined"
+          @input="onNameInput" @keydown="onNameKey" @blur="suggestOpen = false"
+        />
+        <ul v-if="suggestions.length" id="service-list" class="suggest" role="listbox" aria-label="Known services">
+          <li
+            v-for="(svc, i) in suggestions" :id="`svc-${svc.id}`" :key="svc.id" role="option" :aria-selected="i === activeSuggestion"
+            @mousedown.prevent="pickService(svc)" @mousemove="activeSuggestion = i"
+          >
+            <ServiceTile :name="svc.name" :color="categoryFor(svc)?.color" :size="32" />
+            <span class="svc"><strong>{{ svc.name }}</strong><span class="meta">{{ categoryFor(svc)?.name ?? 'Subscription' }} · {{ svc.website }}</span></span>
+          </li>
+        </ul>
       </div>
 
       <div class="row">
         <div class="field grow">
           <label for="f-amount">Price</label>
-          <input id="f-amount" v-model="amountText" class="input" inputmode="decimal" placeholder="299,99" />
+          <input id="f-amount" ref="amountInput" v-model="amountText" class="input" inputmode="decimal" placeholder="299,99" />
         </div>
         <div class="field">
           <label for="f-cur">Currency</label>
@@ -182,12 +307,19 @@ onMounted(() => nameInput.value?.focus())
         </div>
         <div class="field grow">
           <label for="f-cat">Category</label>
-          <select id="f-cat" v-model="draft.category_id" class="input">
+          <select id="f-cat" v-model="categoryChoice" class="input">
             <option :value="null">None</option>
             <option v-for="c in store.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+            <option :value="NEW_CATEGORY">New category…</option>
           </select>
         </div>
       </div>
+      <div v-if="categoryChoice === NEW_CATEGORY" class="row">
+        <input v-model="newCategory" class="input grow" placeholder="Category name" aria-label="New category name" autocomplete="off" @keydown.enter.prevent="addCategory" />
+        <button type="button" class="btn" @click="addCategory">Add</button>
+        <button type="button" class="btn" @click="cancelNewCategory">Cancel</button>
+      </div>
+      <p v-if="categoryError" class="error" role="alert">{{ categoryError }}</p>
 
       <div class="field">
         <div class="label-row">
@@ -256,16 +388,19 @@ onMounted(() => nameInput.value?.focus())
       <div class="actions">
         <button v-if="s" type="button" class="btn btn-danger" @click="destroy">{{ armed ? 'Click again to delete' : 'Delete…' }}</button>
         <span class="spacer" />
-        <button type="button" class="btn" @click="emit('close')">Cancel</button>
+        <button type="button" class="btn" @click="dismiss">Cancel</button>
         <button type="submit" class="btn btn-primary" :disabled="busy">{{ s ? 'Save' : 'Add subscription' }}</button>
+      </div>
       </div>
     </form>
   </div>
 </template>
 
 <style scoped>
-.backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(9, 20, 19, 0.28); display: flex; align-items: flex-start; justify-content: center; padding: 72px 16px 16px; overflow: auto; }
-.sheet { width: min(640px, 100%); display: flex; flex-direction: column; gap: 16px; padding: 28px; }
+.backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(9, 20, 19, 0.28); overflow: auto; }
+.sheet { position: absolute; margin-bottom: 24px; background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+.sheet.attached { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+.content { display: flex; flex-direction: column; gap: 16px; padding: 22px 24px 24px; }
 .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .grow { flex: 1 1 160px; }
 .every { display: flex; gap: 6px; }
@@ -273,6 +408,18 @@ onMounted(() => nameInput.value?.focus())
 .check { display: flex; align-items: center; gap: 8px; height: 40px; font-weight: 600; }
 .meta { margin: -6px 0 0; }
 .error { margin: 0; color: var(--rise); font-weight: 600; }
+.name-field { position: relative; }
+.suggest {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30; margin: 0; padding: 6px; list-style: none;
+  max-height: 320px; overflow: auto; background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-card);
+}
+.suggest li { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer; }
+.suggest li + li { margin-top: 2px; }
+.suggest li[aria-selected='true'] { background: var(--sunken); }
+.svc { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.svc strong { font-size: 14px; font-weight: 600; line-height: 1.25; }
+.svc .meta { font-size: 12px; line-height: 1.3; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .label-row { display: flex; align-items: baseline; justify-content: space-between; }
 .text-btn { border: 0; background: transparent; padding: 0; color: var(--brand); font-size: 12px; font-weight: 700; cursor: pointer; }
 .text-btn:hover { color: var(--ink); }

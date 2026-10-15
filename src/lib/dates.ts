@@ -77,6 +77,16 @@ export function monthRange(year: number, month0: number): { from: string; to: st
   return { from: toISO(new Date(year, month0, 1, 12)), to: toISO(new Date(year, month0 + 1, 0, 12)) }
 }
 
+export function weekRange(iso: string): { from: string; to: string } {
+  const d = fromISO(iso)
+  const monday = addInterval(iso, 'day', -((d.getDay() + 6) % 7))
+  return { from: monday, to: addInterval(monday, 'day', 6) }
+}
+
+export function yearRange(year: number): { from: string; to: string } {
+  return { from: `${year}-01-01`, to: `${year}-12-31` }
+}
+
 export function relativeDay(iso: string, ref = today()): string {
   const n = daysBetween(ref, iso)
   if (n === 0) return 'today'
