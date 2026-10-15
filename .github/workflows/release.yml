@@ -86,11 +86,27 @@ jobs:
           uploadUpdaterJson: true
           args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json
 
-      - name: Check that macOS accepts the app
+      - name: Notarize and staple the DMG
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dmg=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg)
+          xcrun notarytool submit "$dmg" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "$dmg"
+          gh release upload "$GITHUB_REF_NAME" "$dmg" --clobber
+
+      - name: Check that macOS accepts the DMG and the app
         if: matrix.platform == 'macos-latest'
         shell: bash
         run: |
           dmg=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg)
+          spctl --assess --type open --context context:primary-signature --verbose=2 "$dmg"
+          xcrun stapler validate "$dmg"
           mnt=$(mktemp -d)
           hdiutil attach -readonly -nobrowse -mountpoint "$mnt" "$dmg"
           spctl --assess --type execute --verbose=2 "$mnt/Subbrook.app"
